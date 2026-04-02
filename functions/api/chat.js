@@ -32,6 +32,7 @@ export async function onRequestOptions() {
 
 export async function onRequestPost(context) {
   const { env, request } = context;
+  const model = env.GEMINI_MODEL || "gemini-2.0-flash";
 
   if (!env.GEMINI_API_KEY) {
     return jsonResponse({ error: "Missing server API configuration." }, 500);
@@ -57,7 +58,7 @@ export async function onRequestPost(context) {
 
   try {
     const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: {
@@ -95,7 +96,7 @@ export async function onRequestPost(context) {
       return jsonResponse(
         {
           error: "Gemini API request failed.",
-          details: `HTTP ${geminiResponse.status}: ${detailsText}`
+          details: `HTTP ${geminiResponse.status}: ${detailsText} (model: ${model})`
         },
         geminiResponse.status
       );
