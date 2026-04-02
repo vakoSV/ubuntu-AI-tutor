@@ -65,6 +65,7 @@ export async function onRequestPost(context) {
         },
         body: JSON.stringify({
           systemInstruction: {
+            role: "system",
             parts: [{ text: systemPrompt }]
           },
           contents: geminiContents,
@@ -76,13 +77,25 @@ export async function onRequestPost(context) {
       }
     );
 
-    const geminiData = await geminiResponse.json();
+    const rawUpstream = await geminiResponse.text();
+    let geminiData = null;
+    try {
+      geminiData = rawUpstream ? JSON.parse(rawUpstream) : null;
+    } catch (_error) {
+      geminiData = null;
+    }
 
     if (!geminiResponse.ok) {
+      const upstreamMessage = geminiData?.error?.message;
+      const detailsText =
+        typeof upstreamMessage === "string" && upstreamMessage.trim()
+          ? upstreamMessage
+          : rawUpstream || "Unknown upstream error";
+
       return jsonResponse(
         {
           error: "Gemini API request failed.",
-          details: geminiData?.error?.message || "Unknown upstream error"
+          details: `HTTP ${geminiResponse.status}: ${detailsText}`
         },
         geminiResponse.status
       );

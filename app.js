@@ -251,7 +251,10 @@ async function sendMessage() {
     const data = await response.json();
 
     if (!response.ok || typeof data.reply !== "string") {
-      throw new Error(data.error || "Failed to get AI response.");
+      const details = data.details
+        ? ` (${typeof data.details === "string" ? data.details : JSON.stringify(data.details)})`
+        : "";
+      throw new Error((data.error || "Failed to get AI response.") + details);
     }
 
     typingBubble.remove();
