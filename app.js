@@ -92,8 +92,50 @@ const modalTitle = document.getElementById("modalTitle");
 const chatHistory = document.getElementById("chatHistory");
 const chatForm = document.getElementById("chatForm");
 const chatInput = document.getElementById("chatInput");
+const sendButton = chatForm.querySelector("button[type='submit']");
 
+const daySystemPrompts = {
+  1: "You are a Linux tutor strictly teaching the CLI and filesystem.",
+  2: "You are a Linux tutor teaching file operations and command navigation.",
+  3: "You are a Linux tutor teaching users, groups, permissions, and sudo safety.",
+  4: "You are a Linux tutor teaching package management with apt and repositories.",
+  5: "You are a Linux tutor teaching Linux editors, configs, and directory standards.",
+  6: "You are a Linux tutor teaching process management and system monitoring.",
+  7: "You are a Linux tutor teaching bash scripting fundamentals and automation.",
+  8: "You are a Linux tutor teaching Linux networking basics, ports, DNS, and diagnostics.",
+  9: "You are a Linux tutor teaching SSH, key-based auth, and secure remote access.",
+  10: "You are a Linux tutor teaching web server setup, reverse proxy, and deployment checks.",
+  11: "You are a Linux tutor teaching systemd services, units, and restart behavior.",
+  12: "You are a Linux tutor teaching Docker images, containers, and runtime operations.",
+  13: "You are a Linux tutor teaching AI runtime setup with Python environments and dependencies.",
+  14: "You are a Linux tutor teaching production hardening, monitoring, and launch readiness."
+};
+
+const storagePrefix = "ubuntuAiTutor.chat.day";
 let activeDay = null;
+
+function getStorageKey(day) {
+  return `${storagePrefix}.${day}`;
+}
+
+function loadDayHistory(day) {
+  const raw = localStorage.getItem(getStorageKey(day));
+
+  if (!raw) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_error) {
+    return [];
+  }
+}
+
+function saveDayHistory(day, messages) {
+  localStorage.setItem(getStorageKey(day), JSON.stringify(messages));
+}
 
 function renderCards() {
   curriculumGrid.innerHTML = "";
@@ -121,17 +163,27 @@ function appendMessage(role, text) {
   bubble.textContent = text;
   chatHistory.appendChild(bubble);
   chatHistory.scrollTop = chatHistory.scrollHeight;
+  return bubble;
+}
+
+function renderDayHistory(day) {
+  const messages = loadDayHistory(day);
+  chatHistory.innerHTML = "";
+
+  messages.forEach((message) => {
+    appendMessage(message.role, message.text);
+  });
 }
 
 function openModal(dayLesson) {
   activeDay = dayLesson;
-  modalTitle.textContent = `Day ${dayLesson.day}: ${dayLesson.title}`;
-  chatHistory.innerHTML = "";
+  modalTitle.textContent = `Day ${dayLesson.day} Tutor`;
 
-  appendMessage(
-    "tutor",
-    `Welcome to Day ${dayLesson.day}. Ask anything about: ${dayLesson.title}`
-  );
+  renderDayHistory(dayLesson.day);
+
+  if (!chatHistory.children.length) {
+    appendMessage("tutor", `Welcome to Day ${dayLesson.day}. Ask your Linux questions here.`);
+  }
 
   chatModal.classList.remove("hidden");
   document.body.style.overflow = "hidden";
@@ -158,8 +210,10 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
-chatForm.addEventListener("submit", (event) => {
-  event.preventDefault();
+async function sendMessage() {
+  if (!activeDay) {
+    return;
+  }
 
   const message = chatInput.value.trim();
   if (!message) {
@@ -167,13 +221,61 @@ chatForm.addEventListener("submit", (event) => {
   }
 
   appendMessage("user", message);
+
+  const day = activeDay.day;
+  const history = loadDayHistory(day);
+  history.push({ role: "user", text: message, createdAt: Date.now() });
+  saveDayHistory(day, history);
+
   chatInput.value = "";
 
-  const fallbackTitle = activeDay ? activeDay.title : "today's lesson";
-  appendMessage(
-    "tutor",
-    `Good question. For ${fallbackTitle}, focus on one command at a time and test it in your terminal before moving on.`
-  );
+  const typingBubble = appendMessage("tutor", "Typing...");
+  chatInput.disabled = true;
+  if (sendButton) {
+    sendButton.disabled = true;
+  }
+
+  try {
+    const systemPrompt = daySystemPrompts[day] || "You are a Linux tutor.";
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        systemPrompt,
+        chatHistory: history
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || typeof data.reply !== "string") {
+      throw new Error(data.error || "Failed to get AI response.");
+    }
+
+    typingBubble.remove();
+    const tutorReply = data.reply.trim();
+    appendMessage("tutor", tutorReply);
+
+    const updatedHistory = loadDayHistory(day);
+    updatedHistory.push({ role: "tutor", text: tutorReply, createdAt: Date.now() });
+    saveDayHistory(day, updatedHistory);
+  } catch (error) {
+    typingBubble.remove();
+    appendMessage("tutor", `Sorry, I hit an error: ${error instanceof Error ? error.message : "Unknown error"}`);
+  } finally {
+    chatInput.disabled = false;
+    if (sendButton) {
+      sendButton.disabled = false;
+    }
+    chatInput.focus();
+  }
+}
+
+chatForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  sendMessage();
 });
 
 renderCards();
