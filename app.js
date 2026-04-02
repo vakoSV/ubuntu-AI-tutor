@@ -85,7 +85,10 @@ const curriculum = [
   }
 ];
 
-const curriculumGrid = document.getElementById("curriculumGrid");
+const week1Grid = document.getElementById("week1Grid");
+const week2Grid = document.getElementById("week2Grid");
+const week1Toggle = document.getElementById("week1Toggle");
+const week2Toggle = document.getElementById("week2Toggle");
 const chatModal = document.getElementById("chatModal");
 const closeModalBtn = document.getElementById("closeModal");
 const modalTitle = document.getElementById("modalTitle");
@@ -113,6 +116,7 @@ const daySystemPrompts = {
 
 const storagePrefix = "ubuntuAiTutor.chat.day";
 let activeDay = null;
+let activeWeekFilter = "all";
 
 function getStorageKey(day) {
   return `${storagePrefix}.${day}`;
@@ -138,7 +142,8 @@ function saveDayHistory(day, messages) {
 }
 
 function renderCards() {
-  curriculumGrid.innerHTML = "";
+  week1Grid.innerHTML = "";
+  week2Grid.innerHTML = "";
 
   curriculum.forEach((item) => {
     const button = document.createElement("button");
@@ -153,8 +158,27 @@ function renderCards() {
     `;
 
     button.addEventListener("click", () => openModal(item));
-    curriculumGrid.appendChild(button);
+    if (item.week === 1) {
+      week1Grid.appendChild(button);
+    } else {
+      week2Grid.appendChild(button);
+    }
   });
+}
+
+function setWeekVisibility(week) {
+  activeWeekFilter = week;
+  const showWeek1 = week === 1 || week === "all";
+  const showWeek2 = week === 2 || week === "all";
+
+  week1Grid.classList.toggle("hidden-grid", !showWeek1);
+  week2Grid.classList.toggle("hidden-grid", !showWeek2);
+
+  week1Toggle.classList.toggle("active-week", week === 1);
+  week2Toggle.classList.toggle("active-week", week === 2);
+
+  week1Toggle.setAttribute("aria-expanded", String(showWeek1));
+  week2Toggle.setAttribute("aria-expanded", String(showWeek2));
 }
 
 function appendMessage(role, text) {
@@ -197,6 +221,12 @@ function closeModal() {
 }
 
 closeModalBtn.addEventListener("click", closeModal);
+week1Toggle.addEventListener("click", () => {
+  setWeekVisibility(activeWeekFilter === 1 ? "all" : 1);
+});
+week2Toggle.addEventListener("click", () => {
+  setWeekVisibility(activeWeekFilter === 2 ? "all" : 2);
+});
 
 chatModal.addEventListener("click", (event) => {
   if (event.target === chatModal) {
@@ -282,3 +312,4 @@ chatForm.addEventListener("submit", (event) => {
 });
 
 renderCards();
+setWeekVisibility("all");

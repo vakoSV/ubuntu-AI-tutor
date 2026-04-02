@@ -18,16 +18,18 @@
     </header>
 
     <main>
-      <section class="week-section week-1-label" aria-labelledby="week1-title">
-        <h2 id="week1-title">Week 1 - Core foundations</h2>
+      <section class="week-section" aria-labelledby="week1-title">
+        <button id="week1Toggle" class="week-toggle-btn week-1-label" type="button" aria-expanded="true" aria-controls="week1Grid">
+          <span id="week1-title">Week 1 - Core foundations</span>
+        </button>
+        <div id="week1Grid" class="curriculum-grid"></div>
       </section>
 
-      <section class="week-section week-2-label" aria-labelledby="week2-title">
-        <h2 id="week2-title">Week 2 - Server &amp; AI operations</h2>
-      </section>
-
-      <section aria-label="14-day curriculum">
-        <div id="curriculumGrid" class="curriculum-grid"></div>
+      <section class="week-section" aria-labelledby="week2-title">
+        <button id="week2Toggle" class="week-toggle-btn week-2-label" type="button" aria-expanded="true" aria-controls="week2Grid">
+          <span id="week2-title">Week 2 - Server &amp; AI operations</span>
+        </button>
+        <div id="week2Grid" class="curriculum-grid"></div>
       </section>
     </main>
   </div>
